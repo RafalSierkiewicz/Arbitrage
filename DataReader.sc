@@ -9,5 +9,8 @@ import java.io.File
 def read(path: String) =
   readFile(path).flatMap(parser.parse).flatMap(_.as[Map[String, Double]])
 
+def readUnsafe(path: String) =
+  read(path).left.map(throw _).merge
+
 private def readFile(path: String) =
   Try(Files.readAllBytes(Paths.get(path))).map(new String(_)).toEither
