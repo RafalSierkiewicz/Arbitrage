@@ -3,7 +3,7 @@ import ammonite.runtime.tools.Grepper
 import scala.annotation.tailrec
 case class PathNode(from: String, to: String, cost: Double)
 
-case class ArbitragePossibility(nodes: Vector[PathNode]) {
+case class ArbitragePossibility(source: String, nodes: Vector[PathNode]) {
   val income = nodes.map(_.cost).reduce(_ * _)
   def prettyPrint = {
     val space = "\t|\t"
@@ -16,23 +16,38 @@ case class ArbitragePossibility(nodes: Vector[PathNode]) {
   }
 
   def scopedPrint = {
-    println(nodes.map(_.from).mkString(" -> ") + s" -> ${nodes.last.to}")
-    println(s"Income ${income}")
+    println(nodes.map(_.from).mkString(" -> ") + s" -> ${nodes.last.to} profit ${income}")
   }
 }
 
 class BF(graph: Graph) {
 
   type Distances = mutable.Map[String, Double]
-  type Predecessor = mutable.SortedMap[String, String]
-  val initialValue = Double.MaxValue
+  type Predecessor = mutable.Map[String, String]
+  private val initialValue = Double.MaxValue
 
-  def arbitrage(source: String) = {
+  def arbitrage: Array[ArbitragePossibility] = {
+    @tailrec
+    def run(sources: Array[String]): Array[ArbitragePossibility] = {
+      if (sources.isEmpty) {
+        Array()
+      } else {
+        val cycles = arbitrage(sources.head)
+        if (!cycles.isEmpty) {
+          cycles
+        } else {
+          run(sources.tail)
+        }
+      }
+    }
+    run(graph.vertexes)
+  }
+
+  def arbitrage(source: String): Array[ArbitragePossibility] = {
     val dist: Distances = initializeSingleSource(source)
     val predecessor = relax(dist)
 
-    val cycles = detectNegativeCycle(dist)
-    cycles.map {
+    detectNegativeCycles(dist).map {
       case (from, to) =>
         collectPath(predecessor, from, to).sliding(2)
           .map {
@@ -41,8 +56,7 @@ class BF(graph: Graph) {
           }
     }.filter(!_.isEmpty)
       .map(_.toVector)
-      .map(ArbitragePossibility)
-      .foreach(_.scopedPrint)
+      .map(cyc => ArbitragePossibility(source, cyc))
   }
 
   def initializeSingleSource(source: String) = {
@@ -69,9 +83,9 @@ class BF(graph: Graph) {
     pre
   }
 
-  private def detectNegativeCycle(distances: Distances): Array[(String, String)] = {
+  private def detectNegativeCycles(distances: Distances): Array[(String, String)] = {
     graph.vertexes.flatMap { from =>
-      graph.edges(from).find {
+      graph.edges(from).filter {
         case (to, edge) =>
           distances(to) > (distances(from) + edge.weight)
       }.map {
