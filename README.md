@@ -30,9 +30,10 @@ There are quite a lot to improve.
    a. probably there should be also a possibility to stop looking for arbitrage when first one has been found - should be considered if it will be an performance improvment <br>
    b. There are also others than Bellman Ford algorithms. Ex. https://en.wikipedia.org/wiki/Triangular_arbitrage may lead to quicker execution on small matrixes <br>
    c. memory usage - if neccessary there is option to move even to neighboor lists and express it as Array[Array[]] - should be taken into account that readability drops <br>
-   d. during research I've found that there are also some upgrades on Bellman Ford algorithm such as https://pragmaticprogramming.wordpress.com/2017/04/25/bellman-ford-shortest-path-algorithm-optimization/ which may lead to quicker execution due to reduction of relaxation loops
+   d. during research I've found that there are also some upgrades on Bellman Ford algorithm such as https://pragmaticprogramming.wordpress.com/2017/04/25/bellman-ford-shortest-path-algorithm-optimization/ which may lead to quicker execution due to reduction of relaxation loops <br>
+   <b>e. Break the loop when 1 arbitrage possibility has been found.</b>
 
 # Complexity
 
 As it is a standard Bellman Ford algorithm it runs in <br>
-`O(VE)` in that situation as currency matrix is square matrix it would be `O(n^3)` due to fact that E is a dense graph `O(n^2)`
+`O(VE)` in that situation as currency matrix is square matrix (`E = n^2`) it would be `O(n^3)` in situation when we are looking for one arbitrary possibility (classical Bellman Ford). As I treated it as some skill challenge and it runs in aprox. `O(n^5)`, but reducing it to `O(n^3)` would be minor case
