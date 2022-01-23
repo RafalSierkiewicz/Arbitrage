@@ -42,11 +42,16 @@ object ArbitragePresenter {
     val space = "=" * 4
     println(
       (Vector(s"${space} Arbitrage Possibilities ${space}") ++
-        arbitrage.fromSourcePossibility.filter(_ => arbitrage.source.isDefined).toVector.map { fromSource =>
-          s"${space} Possibility from source found ${space}\n" +
-            getPossibilityString(fromSource)
-        } ++ Vector(s"${space} Showing all possibilities ${space}") ++
-        arbitrage.possibilities.sortBy(_.income)(Ordering[Double].reverse).map(getPossibilityString)).mkString("\n\n")
+        arbitrage.fromSourcePossibility
+          .filter(_ => arbitrage.source.isDefined)
+          .filter(_.income > 1.0).headOption.map { fromSource =>
+            s"${space} Possibility from source found ${space}\n" +
+              getPossibilityString(fromSource)
+          }.orElse(arbitrage.source.map(sr => s"Arbitrage from source ${sr} not found")).toVector
+        ++ Vector(s"${space} Showing all possibilities ${space}") ++
+        arbitrage.possibilities
+          .filter(_.income > 1.0)
+          .sortBy(_.income)(Ordering[Double].reverse).map(getPossibilityString)).mkString("\n\n")
     )
 
   }
