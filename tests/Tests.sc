@@ -10,13 +10,13 @@ new Tests().execute()
 class Tests extends flatspec.AnyFlatSpec with Matchers {
 
   "Data reader" should "parse parse correctly" in {
-    val result = DataReader.read(new File("tests/data/example.json"))
+    val result = DataReader.read(new File("tests/data/test.json"))
     result.isRight should be(true)
     result.toOption.get should contain.allElementsOf(expectedMap)
   }
 
   "BFv2" should "find all best arbitrage possibilities" in {
-    val result = DataReader.read(new File("tests/data/example.json")).toOption.get
+    val result = DataReader.read(new File("tests/data/test.json")).toOption.get
     val graph = Graph.fromApiMap(result)
     val arbitrage = new BFv2.BF(graph).arbitrage
 
@@ -36,7 +36,7 @@ class Tests extends flatspec.AnyFlatSpec with Matchers {
 
   "BFv2" should "tell if there is possibility from source" in {
     val EPS = 1e-4
-    val result = DataReader.read(new File("tests/data/example.json")).toOption.get
+    val result = DataReader.read(new File("tests/data/test.json")).toOption.get
     val graph = Graph.fromApiMap(result)
     val arbitrage = new BFv2.BF(graph).arbitrage("USD")
 
@@ -46,6 +46,34 @@ class Tests extends flatspec.AnyFlatSpec with Matchers {
       ArbitragePossibility("USD", true, Vector(PathNode("USD", "EUR", 0.7779), PathNode("EUR", "BTC", 0.01125), PathNode("BTC", "USD", 115.65)))
     )
     arbitrage.fromSourcePossibility.get.income should be(1.012 +- EPS)
+  }
+
+  "BFv2" should "tell if there is possibility from source 2" in {
+    val EPS = 1e-4
+    val result = DataReader.read(new File("tests/data/test2.json")).toOption.get
+    val graph = Graph.fromApiMap(result)
+    val arbitrage = new BFv2.BF(graph).arbitrage("USD")
+
+    arbitrage.possibilities should not be empty
+    arbitrage.fromSourcePossibility.isDefined should be(true)
+    arbitrage.fromSourcePossibility.get should be(
+      ArbitragePossibility("USD", true, Vector(PathNode("USD", "BTC", 0.0088882), PathNode("BTC", "USD", 134.9448442)))
+    )
+    arbitrage.fromSourcePossibility.get.income should be(1.1994 +- EPS)
+  }
+
+  "BFv2" should "tell if there is possibility from source 3" in {
+    val EPS = 1e-4
+    val result = DataReader.read(new File("tests/data/test3.json")).toOption.get
+    val graph = Graph.fromApiMap(result)
+    val arbitrage = new BFv2.BF(graph).arbitrage("USD")
+
+    arbitrage.possibilities should not be empty
+    arbitrage.fromSourcePossibility.isDefined should be(true)
+    arbitrage.fromSourcePossibility.get should be(
+      ArbitragePossibility("USD", true, Vector(PathNode("USD", "BTC", 0.0088654), PathNode("BTC", "USD", 135.1351146)))
+    )
+    arbitrage.fromSourcePossibility.get.income should be(1.1981 +- EPS)
   }
 
   val expectedMap = {
