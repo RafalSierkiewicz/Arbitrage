@@ -9,7 +9,6 @@ import cats.effect.Concurrent
 class PriceApiClient[F[_]: Concurrent](client: Client[F], url: String) {
   implicit val decoder: EntityDecoder[F, Map[String, Double]] = jsonOf[F, Map[String, Double]]
 
-  def getPrices: F[Map[String, Double]] = {
-    client.expect[Map[String, Double]](url)
-  }
+  def getPrices: F[Map[String, Double]] = client.expect[Map[String, Double]](url)
+
 }

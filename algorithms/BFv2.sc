@@ -141,19 +141,6 @@ object ArbitragePossibilities {
 
 case class ArbitragePossibility(source: String, isFromSource: Boolean, nodes: Vector[PathNode]) {
   val income = nodes.map(_.cost).reduce(_ * _)
-  def prettyPrint = {
-    val space = "\t|\t"
-    println(s"Possibile arbitrage")
-    println(s"From${space}To${space}Cost")
-    nodes
-      .map(node => s"${node.from}${space}${node.to}${space}${node.cost}")
-      .foreach(println)
-    println(s"Income ${income}")
-  }
-
-  def scopedPrint = {
-    println(nodes.map(_.from).mkString(" -> ") + s" -> ${nodes.last.to} profit ${income}")
-  }
 }
 
 case class PathNode(from: String, to: String, cost: Double)
