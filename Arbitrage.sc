@@ -1,13 +1,13 @@
 interp.configureCompiler(_.settings.Ydelambdafy.tryToSetColon(List("inline")))
 import $ivy.`org.http4s::http4s-blaze-client:0.21.5`, org.http4s.client.blaze._, org.http4s.client._
 
-import $file.DataReader
-import $file.BFv2
-import $file.BF_lib
-import $file.PriceApi, PriceApi._
+import $file.`common`.DataReader
+import $file.`algorithms`.BFv2
+import $file.`algorithms`.BF_lib
+import $file.`apis`.PriceApi, PriceApi._
 import cats.effect._
 import scala.concurrent.duration._
-val testCurr = DataReader.readUnsafe("data/example.json")
+val testCurr = DataReader.readUnsafe("tests/data/example.json")
 implicit val CS = IO.contextShift(scala.concurrent.ExecutionContext.global)
 
 println(s"==== BFv2 ====")

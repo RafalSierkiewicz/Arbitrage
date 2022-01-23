@@ -1,5 +1,4 @@
 import $ivy.`org.jgrapht:jgrapht-core:1.5.1`, org.jgrapht._
-import $file.DataReader
 import org.jgrapht.graph._
 import org.jgrapht.alg.shortestpath.BellmanFordShortestPath
 import org.jgrapht.alg.shortestpath.NegativeCycleDetectedException

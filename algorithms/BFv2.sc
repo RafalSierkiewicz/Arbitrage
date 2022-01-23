@@ -1,24 +1,6 @@
 import scala.collection._
 import ammonite.runtime.tools.Grepper
 import scala.annotation.tailrec
-case class PathNode(from: String, to: String, cost: Double)
-
-case class ArbitragePossibility(source: String, nodes: Vector[PathNode]) {
-  val income = nodes.map(_.cost).reduce(_ * _)
-  def prettyPrint = {
-    val space = "\t|\t"
-    println(s"Possibile arbitrage")
-    println(s"From${space}To${space}Cost")
-    nodes
-      .map(node => s"${node.from}${space}${node.to}${space}${node.cost}")
-      .foreach(println)
-    println(s"Income ${income}")
-  }
-
-  def scopedPrint = {
-    println(nodes.map(_.from).mkString(" -> ") + s" -> ${nodes.last.to} profit ${income}")
-  }
-}
 
 class BF(graph: Graph) {
 
@@ -26,24 +8,28 @@ class BF(graph: Graph) {
   type Predecessor = mutable.Map[String, String]
   private val initialValue = Double.MaxValue
 
-  def arbitrage: Array[ArbitragePossibility] = {
+  def arbitrage: ArbitragePossibilities = {
     @tailrec
-    def run(sources: Array[String]): Array[ArbitragePossibility] = {
+    def loop(sources: Array[String]): Vector[ArbitragePossibility] = {
       if (sources.isEmpty) {
-        Array()
+        Vector.empty
       } else {
-        val cycles = arbitrage(sources.head)
+        val cycles = run(sources.head)
         if (!cycles.isEmpty) {
           cycles
         } else {
-          run(sources.tail)
+          loop(sources.tail)
         }
       }
     }
-    run(graph.vertexes)
+    ArbitragePossibilities.make(loop(graph.vertexes))
   }
 
-  def arbitrage(source: String): Array[ArbitragePossibility] = {
+  def arbitrage(source: String): ArbitragePossibilities = {
+    ArbitragePossibilities.make(run(source), Some(source))
+  }
+
+  private def run(source: String): Vector[ArbitragePossibility] = {
     val dist: Distances = initializeSingleSource(source)
     val predecessor = relax(dist)
 
@@ -56,7 +42,8 @@ class BF(graph: Graph) {
           }
     }.filter(!_.isEmpty)
       .map(_.toVector)
-      .map(cyc => ArbitragePossibility(source, cyc))
+      .map(cycle => ArbitragePossibility.make(source, cycle))
+      .toVector
   }
 
   def initializeSingleSource(source: String) = {
@@ -134,5 +121,42 @@ object Graph {
     } else {
       Right((array(0), array(1)))
     }
+  }
+}
+
+case class ArbitragePossibilities(
+  source: Option[String],
+  fromSourcePossibility: Option[ArbitragePossibility],
+  possibilities: Vector[ArbitragePossibility]
+)
+object ArbitragePossibilities {
+  def make(possibilities: Vector[ArbitragePossibility], source: Option[String] = None) = {
+    ArbitragePossibilities(source, possibilities.find(_.isFromSource), possibilities)
+  }
+}
+
+case class ArbitragePossibility(source: String, isFromSource: Boolean, nodes: Vector[PathNode]) {
+  val income = nodes.map(_.cost).reduce(_ * _)
+  def prettyPrint = {
+    val space = "\t|\t"
+    println(s"Possibile arbitrage")
+    println(s"From${space}To${space}Cost")
+    nodes
+      .map(node => s"${node.from}${space}${node.to}${space}${node.cost}")
+      .foreach(println)
+    println(s"Income ${income}")
+  }
+
+  def scopedPrint = {
+    println(nodes.map(_.from).mkString(" -> ") + s" -> ${nodes.last.to} profit ${income}")
+  }
+}
+
+case class PathNode(from: String, to: String, cost: Double)
+
+object ArbitragePossibility {
+  def make(source: String, nodes: Vector[PathNode]) = {
+    val isFromSource = !nodes.isEmpty && nodes.head.from == source && nodes.last.to == source
+    ArbitragePossibility(source, isFromSource, nodes)
   }
 }
