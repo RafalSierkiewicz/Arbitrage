@@ -1,32 +1,62 @@
-interp.configureCompiler(_.settings.Ydelambdafy.tryToSetColon(List("inline")))
 import $ivy.`org.http4s::http4s-blaze-client:0.21.5`, org.http4s.client.blaze._, org.http4s.client._
-
+import $ivy.`org.slf4j:slf4j-nop:1.7.30`
 import $file.`common`.DataReader
-import $file.`algorithms`.BFv2
+import $file.`algorithms`.BFv2, BFv2._
 import $file.`algorithms`.BF_lib
 import $file.`apis`.PriceApi, PriceApi._
+
 import cats.effect._
 import scala.concurrent.duration._
-val testCurr = DataReader.readUnsafe("tests/data/example.json")
+import org.slf4j.LoggerFactory
+
 implicit val CS = IO.contextShift(scala.concurrent.ExecutionContext.global)
-
-println(s"==== BFv2 ====")
-new BFv2.BF(BFv2.Graph.fromApiMap(testCurr)).arbitrage.foreach(_.scopedPrint)
-
-println(s"==== Lib ====")
-new BF_lib.BF(BF_lib.Graph.fromApiMap(testCurr)).arbitrage("USD")
-
 val client = BlazeClientBuilder[IO](scala.concurrent.ExecutionContext.global).resource.map { client =>
   IO.pure(new PriceApiClient(client, "https://fx.priceonomics.com/v1/rates/"))
 }.allocated
+@main
+def arbitrage(source: String): Unit = {
+  main(Some(source))
+}
 
-for (i <- 0 until 1) {
+@main
+def arbitrageAll(): Unit = {
+  main(None)
+}
+
+def main(source: Option[String]): Unit = {
   val currencies = client.flatMap(_._1.flatMap(_.getPrices)).unsafeRunTimed(1.minute).get
-  println(s"==== BFv2 ====")
-  new BFv2.BF(BFv2.Graph.fromApiMap(currencies)).arbitrage("USD").foreach(_.scopedPrint)
-
-  println(s"==== Lib ====")
-  new BF_lib.BF(BF_lib.Graph.fromApiMap(currencies)).arbitrage("USD")
+  val bellmanFord = new BFv2.BF(BFv2.Graph.fromApiMap(currencies))
+  val possibilities = source match {
+    case Some(currency) =>
+      bellmanFord.arbitrage(currency.toUpperCase())
+    case None =>
+      bellmanFord.arbitrage
+  }
+  ArbitragePresenter.print(possibilities)
 }
 
 client.flatMap(_._2).unsafeRunSync()
+
+object ArbitragePresenter {
+  def print(arbitrage: ArbitragePossibilities) = {
+    val space = "=" * 4
+    println(
+      (Vector(s"${space} Arbitrage Possibilities ${space}") ++
+        arbitrage.fromSourcePossibility.filter(_ => arbitrage.source.isDefined).toVector.map { fromSource =>
+          s"${space} Possibility from source found ${space}\n" +
+            getPossibilityString(fromSource)
+        } ++ Vector(s"${space} Showing all possibilities ${space}") ++
+        arbitrage.possibilities.sortBy(_.income)(Ordering[Double].reverse).map(getPossibilityString)).mkString("\n\n")
+    )
+
+  }
+
+  private def getPossibilityString(possibility: ArbitragePossibility) = {
+    val space = "\t|\t"
+    (Vector(s"Possibile arbitrage") ++
+      Vector(s"From${space}To${space}Cost") ++
+      possibility.nodes
+        .map(node => s"${node.from}${space}${node.to}${space}${node.cost}") ++
+      Vector(s"Income ${possibility.income}")).mkString("\n")
+  }
+}
