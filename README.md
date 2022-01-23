@@ -36,4 +36,4 @@ There are quite a lot to improve.
 # Complexity
 
 As it is a standard Bellman Ford algorithm it runs in <br>
-`O(VE)` in that situation as currency matrix is square matrix (`E = n^2`) it would be `O(n^3)` in situation when we are looking for one arbitrary possibility (classical Bellman Ford). As I treated it as some skill challenge and it runs in aprox. `O(n^5)`, but reducing it to `O(n^3)` would be minor case
+`O(VE)` in that situation as currency matrix is square matrix (`E = n^2`) it would be `O(n^3)` . In our case due to iterating over all cycles it gets `O(n^2(n+1))` which gives aprox. `O(n^3)`
