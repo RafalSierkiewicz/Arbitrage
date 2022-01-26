@@ -1,5 +1,7 @@
 import $file.^.common.DataReader
-import $file.^.algorithms.BFv2, BFv2._
+import $file.^.algorithms.BFv2
+import $file.^.algorithms.Models, Models._
+
 import $ivy.`org.scalatest::scalatest:3.2.10`, org.scalatest._
 import org.scalatest.matchers.should._
 import java.io.File
