@@ -24,20 +24,22 @@ class BF(graph: Models.Graph) {
   }
 
   private def run(source: String)(implicit ex: ExecutionContext): Future[Vector[ArbitragePossibility]] = {
-    relax(initializeSingleSource(source)).map(distances =>
-      detectNegativeCycles(distances).map {
-        case (from, to) =>
-          collectPath(distances.asScala.view.mapValues(_.to).toMap, from, to).sliding(2)
-            .map {
-              case Array(from, to) =>
-                PathNode(from, to, graph.edges(from)(to).rate)
-            }
-      }.filter(!_.isEmpty)
-        .map(_.toVector)
-        .map(cycle => ArbitragePossibility.make(source, cycle))
-        .toVector
-    )
-
+    for {
+      distances <- relax(initializeSingleSource(source))
+      cycles <- detectNegativeCycles(distances)
+      res <- Future(
+        cycles.map {
+          case (from, to) => collectPath(distances.asScala.view.mapValues(_.to).toMap, from, to).sliding(2)
+              .map {
+                case Array(from, to) =>
+                  PathNode(from, to, graph.edges(from)(to).rate)
+              }
+        }.filter(!_.isEmpty)
+          .map(_.toVector)
+          .map(cycle => ArbitragePossibility.make(source, cycle))
+          .toVector
+      )
+    } yield res
   }
 
   def initializeSingleSource(source: String) = {
@@ -45,35 +47,39 @@ class BF(graph: Models.Graph) {
   }
 
   def relax(initMap: Distances)(implicit ex: ExecutionContext) = {
-
-    Source(0 until graph.vertexes.size - 1).mapAsync(graph.vertexes.size) { _ =>
+    Source(0 until graph.vertexes.size - 1).mapAsync(1) { _ =>
       Source(graph.vertexes).runWith(edgeSink(initMap))
     }.runWith(Sink.ignore).map(_ => initMap)
 
   }
 
   def edgeSink(distances: Distances)(implicit ex: ExecutionContext): Sink[String, Future[Done]] = {
-    Sink.foreachAsync[String](graph.edges.values.head.size) { from =>
+    Sink.foreachAsync[String](graph.edges.values.head.size - 1) { from =>
       Future(
         graph.edges(from).filter {
           case (to, edge) =>
             distances.get(to).weight > (distances.get(from).weight + edge.weight)
         }.map {
-          case (to, edge) => distances.replace(to, Node(distances.get(from).weight + edge.weight, from))
+          case (to, edge) =>
+            distances.replace(to, Node(distances.get(from).weight + edge.weight, from))
         }
       )
     }
   }
 
-  private def detectNegativeCycles(distances: Distances): Array[(String, String)] = {
-    graph.vertexes.flatMap { from =>
-      graph.edges(from).filter {
-        case (to, edge) =>
-          distances.get(to).weight > (distances.get(from).weight + edge.weight)
-      }.map {
-        case (to, _) => (to -> from)
-      }
+  private def detectNegativeCycles(distances: Distances)(implicit ex: ExecutionContext): Future[Array[(String, String)]] = {
+    val sink = Sink.foldAsync[Array[(String, String)], String](Array.empty) {
+      case (acc, from) =>
+        Future(
+          acc ++ graph.edges(from).filter {
+            case (to, edge) =>
+              distances.get(to).weight > (distances.get(from).weight + edge.weight)
+          }.map {
+            case (to, _) => (to -> from)
+          }.toArray
+        )
     }
+    Source(graph.vertexes).runWith(sink)
   }
 
   def collectPath(predecessor: Map[String, String], to: String, from: String): Array[String] = {

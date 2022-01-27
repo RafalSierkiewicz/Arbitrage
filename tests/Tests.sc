@@ -62,7 +62,7 @@ class Tests extends flatspec.AnyFlatSpec with Matchers {
     val arbitrage = new BFv2.BF(graph).arbitrage("USD")
     val parallel = new BFParallel.BF(graph).arbitrage("USD")
     val parallelReady = Await.result(parallel, Duration.Inf)
-    println(parallelReady.fromSourcePossibility)
+    println(parallelReady.possibilities)
     arbitrage.possibilities should not be empty
     arbitrage.fromSourcePossibility.isDefined should be(true)
     arbitrage.fromSourcePossibility.get should be(
