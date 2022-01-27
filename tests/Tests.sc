@@ -1,11 +1,16 @@
 import $file.^.common.DataReader
 import $file.^.algorithms.BFv2
+import $file.^.algorithms.BFParallel
+
 import $file.^.algorithms.Models, Models._
 
 import $ivy.`org.scalatest::scalatest:3.2.10`, org.scalatest._
 import org.scalatest.matchers.should._
 import java.io.File
 import org.scalactic.TolerantNumerics
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 new Tests().execute()
 
@@ -55,13 +60,16 @@ class Tests extends flatspec.AnyFlatSpec with Matchers {
     val result = DataReader.read(new File("tests/data/test2.json")).toOption.get
     val graph = Graph.fromApiMap(result)
     val arbitrage = new BFv2.BF(graph).arbitrage("USD")
-
+    val parallel = new BFParallel.BF(graph).arbitrage("USD")
+    val parallelReady = Await.result(parallel, Duration.Inf)
+    println(parallelReady.fromSourcePossibility)
     arbitrage.possibilities should not be empty
     arbitrage.fromSourcePossibility.isDefined should be(true)
     arbitrage.fromSourcePossibility.get should be(
       ArbitragePossibility("USD", true, Vector(PathNode("USD", "BTC", 0.0088882), PathNode("BTC", "USD", 134.9448442)))
     )
     arbitrage.fromSourcePossibility.get.income should be(1.1994 +- EPS)
+    parallelReady.fromSourcePossibility should be(arbitrage.fromSourcePossibility)
   }
 
   "BFv2" should "tell if there is possibility from source 3" in {
