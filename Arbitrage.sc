@@ -3,15 +3,20 @@ import $ivy.`org.slf4j:slf4j-nop:1.7.30`
 import $file.common.DataReader
 import $file.algorithms.Models, Models._
 import $file.algorithms.BFv2, BFv2._
+import $file.algorithms.BFParallel, BFParallel._
+
 import $file.algorithms.BF_lib
 import $file.apis.PriceApi, PriceApi._
 
 import cats.effect._
 import scala.concurrent.duration._
 import org.slf4j.LoggerFactory
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Await
 
-implicit val CS = IO.contextShift(scala.concurrent.ExecutionContext.global)
-val client = BlazeClientBuilder[IO](scala.concurrent.ExecutionContext.global).resource.map { client =>
+implicit val EC = scala.concurrent.ExecutionContext.global
+implicit val CS = IO.contextShift(EC)
+val client = BlazeClientBuilder[IO](EC).resource.map { client =>
   IO.pure(new PriceApiClient(client, "https://fx.priceonomics.com/v1/rates/"))
 }.allocated
 
@@ -34,7 +39,11 @@ def main(source: Option[String]): Unit = {
     case None =>
       bellmanFord.arbitrage
   }
+  val parallel = new BFParallel.BF(Graph.fromApiMap(currencies)).arbitrage("USD")
   ArbitragePresenter.print(possibilities)
+
+  println(s"\nParallel execution for USD \n")
+  Await.ready(parallel.map(ArbitragePresenter.print), Duration.Inf)
 }
 
 client.flatMap(_._2).unsafeRunSync()
