@@ -1,9 +1,16 @@
 import $file.^.common.DataReader
-import $file.^.algorithms.BFv2, BFv2._
+import $file.^.algorithms.BFv2
+import $file.^.algorithms.BFParallel
+
+import $file.^.algorithms.Models, Models._
+
 import $ivy.`org.scalatest::scalatest:3.2.10`, org.scalatest._
 import org.scalatest.matchers.should._
 import java.io.File
 import org.scalactic.TolerantNumerics
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 new Tests().execute()
 
@@ -48,6 +55,7 @@ class Tests extends flatspec.AnyFlatSpec with Matchers {
     arbitrage.fromSourcePossibility.get.income should be(1.012 +- EPS)
   }
 
+  //Not best as BTC -> USD -> BTC is also valid - not parallel ready test
   "BFv2" should "tell if there is possibility from source 2" in {
     val EPS = 1e-4
     val result = DataReader.read(new File("tests/data/test2.json")).toOption.get

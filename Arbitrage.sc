@@ -1,9 +1,10 @@
 import $ivy.`org.http4s::http4s-blaze-client:0.21.5`, org.http4s.client.blaze._, org.http4s.client._
 import $ivy.`org.slf4j:slf4j-nop:1.7.30`
-import $file.`common`.DataReader
-import $file.`algorithms`.BFv2, BFv2._
-import $file.`algorithms`.BF_lib
-import $file.`apis`.PriceApi, PriceApi._
+import $file.common.DataReader
+import $file.algorithms.Models, Models._
+import $file.algorithms.BFv2, BFv2._
+import $file.algorithms.BF_lib
+import $file.apis.PriceApi, PriceApi._
 
 import cats.effect._
 import scala.concurrent.duration._
@@ -13,6 +14,7 @@ implicit val CS = IO.contextShift(scala.concurrent.ExecutionContext.global)
 val client = BlazeClientBuilder[IO](scala.concurrent.ExecutionContext.global).resource.map { client =>
   IO.pure(new PriceApiClient(client, "https://fx.priceonomics.com/v1/rates/"))
 }.allocated
+
 @main
 def arbitrage(source: String): Unit = {
   main(Some(source))
@@ -25,7 +27,7 @@ def arbitrageAll(): Unit = {
 
 def main(source: Option[String]): Unit = {
   val currencies = client.flatMap(_._1.flatMap(_.getPrices)).unsafeRunTimed(1.minute).get
-  val bellmanFord = new BFv2.BF(BFv2.Graph.fromApiMap(currencies))
+  val bellmanFord = new BFv2.BF(Graph.fromApiMap(currencies))
   val possibilities = source match {
     case Some(currency) =>
       bellmanFord.arbitrage(currency.toUpperCase())
