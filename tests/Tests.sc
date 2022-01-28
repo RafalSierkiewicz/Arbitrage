@@ -55,21 +55,19 @@ class Tests extends flatspec.AnyFlatSpec with Matchers {
     arbitrage.fromSourcePossibility.get.income should be(1.012 +- EPS)
   }
 
+  //Not best as BTC -> USD -> BTC is also valid - not parallel ready test
   "BFv2" should "tell if there is possibility from source 2" in {
     val EPS = 1e-4
     val result = DataReader.read(new File("tests/data/test2.json")).toOption.get
     val graph = Graph.fromApiMap(result)
     val arbitrage = new BFv2.BF(graph).arbitrage("USD")
-    val parallel = new BFParallel.BF(graph).arbitrage("USD")
-    val parallelReady = Await.result(parallel, Duration.Inf)
-    println(parallelReady.possibilities)
+
     arbitrage.possibilities should not be empty
     arbitrage.fromSourcePossibility.isDefined should be(true)
     arbitrage.fromSourcePossibility.get should be(
       ArbitragePossibility("USD", true, Vector(PathNode("USD", "BTC", 0.0088882), PathNode("BTC", "USD", 134.9448442)))
     )
     arbitrage.fromSourcePossibility.get.income should be(1.1994 +- EPS)
-    parallelReady.fromSourcePossibility should be(arbitrage.fromSourcePossibility)
   }
 
   "BFv2" should "tell if there is possibility from source 3" in {
